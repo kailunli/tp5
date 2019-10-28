@@ -2,5 +2,6 @@
 /.vscode
 /vendor
 *.log
+./config/database.php
 .env
 .DS_Store
