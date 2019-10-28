@@ -1,7 +1,6 @@
 /.idea
 /.vscode
 /vendor
-database.php
 *.log
 ./config/database.php
 .env
