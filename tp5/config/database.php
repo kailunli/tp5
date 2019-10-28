@@ -13,11 +13,15 @@ return [
     // 数据库类型
     'type'            => 'mysql',
     // 服务器地址
+<<<<<<< HEAD
     'hostname'        => 'www.armorcat.com',
+=======
+    'hostname'        => '',
+>>>>>>> 0a9d9483109e8d8931613cb254da841e7f2bc400
     // 数据库名
     'database'        => 'llkl',
     // 用户名
-    'username'        => 'root',
+    'username'        => '',
     // 密码
     'password'        => 'lovequeen',
     // 端口
