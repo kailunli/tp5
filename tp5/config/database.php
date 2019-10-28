@@ -17,9 +17,9 @@ return [
     // 数据库名
     'database'        => 'llkl',
     // 用户名
-    'username'        => '',
+    'username'        => 'root',
     // 密码
-    'password'        => '',
+    'password'        => 'lovequeen',
     // 端口
     'hostport'        => '3306',
     // 连接dsn

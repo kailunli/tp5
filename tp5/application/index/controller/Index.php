@@ -9,12 +9,16 @@ class Index extends Base
 {
     public function index(Request $req)
     {
-        $pageNum = $req->param('pageNum', 1, 'int');
-        $pageSize = $req->param('pageSize', 20, 'int');
-        $cserv = new ClassicService();
-        $result = $cserv->getClassicList($pageNum, $pageSize);
+        if ($req->isAjax()) {
+            $pageNum = $req->param('pageNum', 1, 'int');
+            $pageSize = $req->param('pageSize', 20, 'int');
+            $cserv = new ClassicService();
+            $result = $cserv->getClassicList($pageNum, $pageSize);
 
-        return json($result);
+            return json(['code'=>0, 'msg'=>'', 'result'=>$result]);
+        } else {
+            return view('index');
+        }
     }
 
 }

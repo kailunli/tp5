@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link rel="stylesheet" href="{$resource.layui_css}" />
+    <script type="text/javascript" src="{$resource.js}/jquery.js"></script>
+    <script type="text/javascript" src="{$resource.layui_alljs}"></script>
+</head>
+<body>
+
+    <div id="data-box" style="padding: 10px;">
+        <!-- 关键词 -->
+        <div class="layui-inline">
+            <label class="layui-form-label">关键词</label>
+            <div class="layui-input-inline" style="width: 110px;">
+                <input type="text" id="keyword" name="keyword" placeholder="请输入关键词" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <!-- 查询日期 -->
+        <div class="layui-inline">
+            <label class="layui-form-label">日期</label>
+            <div class="layui-input-inline" style="width: 100px;">
+                <input type="text" id="startDate" name="startDate" autocomplete="off" value="" class="layui-input">
+            </div>
+            -
+            <div class="layui-input-inline" style="width: 100px;">
+                <input type="text" id="endDate" name="endDate" autocomplete="off" value="" class="layui-input">
+            </div>
+        </div>
+
+        <div id="table">
+            <table class="layui-table">
+                <thead>
+                    <tr><th>序号</th><th>名称</th><th>简介</th></tr>
+                </thead>
+                <tbody id="tbody">
+                </tbody>
+            </table>
+            <div id="page"></div>
+        </div>
+    </div>
+
+<script>
+
+    class Page {
+        constructor(api, pageSelectorId, generateTr) {
+            this.api = api;
+            this.pageDatas = {
+                list: [], pageInfo: { pageNum:1, pageSize:10, total:0, totalPage:0 }
+            };
+            this.pageSelectorId = (typeof pageSelectorId == "undefined" ? "page" : pageSelectorId);
+            this.limits = [10, 20, 30, 60];
+
+            try {
+                layui.use(['layer', 'laypage', 'laydate'], () => {
+                    this.layer = layui.layer;
+                    this.laypage = layui.laypage;
+                    this.laydate = layui.laydate;
+                });
+            } catch (e) {
+                throw "layui.all.js不存在！！！";
+            }
+            if (typeof generateTr == "function") {
+                this.generateTr = generateTr;
+            }
+            this.init();
+        }
+
+        formatDateTime (timestamp) {
+
+            if (!isNaN(timestamp) && timestamp.length < 13) {
+                timestamp += '000';
+            }
+
+            var num = (new RegExp("-?\\d+")).exec(timestamp);
+            var unit = (new RegExp("days?|months?|years?")).exec(timestamp);
+
+            if (null != num && num != 0 && null != unit) {
+
+                unit = unit.toString();
+                num = parseInt(num);
+                var d = new Date();
+
+                switch (unit.toLowerCase()) {
+                    default:
+                    case 'day':
+                    case 'days':
+                        timestamp = new Date().getTime() + (num * 86400000);
+                        break;
+                    case 'month':
+                    case 'months':
+                        var nyear = d.getFullYear();
+                        var nmonth = d.getMonth() + 1;
+
+                        if (num > 0) {
+                            var ryear = nyear + parseInt((num + nmonth) / 12);
+                        } else {
+                            var ryear = nyear + parseInt((num - nmonth) / 12);
+                        }
+                        var rmonth = (parseInt(num % 12) + 12 + nmonth) % 12;
+                        if (rmonth == 0) {
+                            rmonth = 12;
+                        }
+                        timestamp = (new Date(ryear+"-"+rmonth+"-"+d.getDate()+" "+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds())).getTime();
+                        break;
+                    case 'year':
+                    case 'years':
+                        timestamp = (new Date((ryear+num)+"-"+d.getMonth()+"-"+d.getDate()+" "+d.getHours()+":"+d.getMinutes()+":"+d.getSeconds())).getTime();
+                        break;
+                }
+                d = new Date(timestamp);
+            } else {
+                if (typeof  timestamp == "undefined") {
+                    var d = new Date();
+                } else {
+                    var d = new Date(timestamp);
+                }
+            }
+
+            var year = d.getFullYear();
+            var month= d.getMonth() + 1;
+            var day = d.getDate();
+
+            var hour = d.getHours();
+            var min  = d.getMinutes();
+            var sec  = d.getSeconds();
+
+            if ( month < 10 ) { month = '0' + month; }
+            if ( day < 10 ) { day = '0' + day; }
+            if ( hour < 10 ) { hour = '0' + hour; }
+            if ( min < 10 ) { min = '0' + min; }
+            if ( sec < 10 ) { sec = '0' + sec; }
+
+            var date = function () {
+                return year + "-" + month + "-" + day;
+            }
+
+            var time = function(flag) {
+                return hour + ":" + min + (typeof flag == "undefined" || flag == 0 ? (":" + sec) : "");
+            }
+
+            var datetime = function () {
+                return date() + " " + time();
+            };
+
+            return {year:year, month:month, day:day, hour:hour, min:min, sec:sec, formatDate:date(), formatTime:time(), formatTime2:time(1), formateDateTime:datetime()};
+        }
+
+        init () {
+
+            var that = this;
+
+            // 分页
+            this.getPageDatas(this.pageDatas.pageInfo.pageNum, this.pageDatas.pageInfo.pageSize, true);
+
+            // 日历插件
+            /* layui 日期时间控件 */
+            (function () {
+                // 开始日期
+                that.laydate.render({
+                    elem: '#startDate'
+                    ,type: 'date' //默认，可不填
+                    ,value: that.formatDateTime('-1 month').formatDate,
+                });
+                // 结束日期
+                that.laydate.render({
+                    elem: '#endDate'
+                    ,type: 'date' //默认，可不填
+                    ,value: new Date(),
+                });
+            })();
+        }
+
+        generateTr (row, index) {
+            return '<tr>' +
+                '<td>第'+index+'行数据！</td>' +
+                '<td>'+ JSON.stringify(row) +'</td>' +
+                '</tr>';
+        }
+
+        /* 获取分页数据 */
+        getPageDatas (pageNum, pageSize, isRenderPage) {
+            var that = this; // 指向Page类
+
+            isRenderPage = (typeof isRenderPage == "undefined" || isRenderPage != true ? false : isRenderPage)
+
+            if (typeof pageNum == "undefined" || isNaN(pageNum) || pageNum <= 0) { pageNum =1; }
+            if (typeof pageSize == "undefined" || isNaN(pageSize) || pageSize <= 0) { pageSize =20; }
+
+            var postData = {
+                pageNum: pageNum,
+                pageSize: pageSize
+            };
+
+            $.post(that.api, postData, function (d) {
+                $("#tbody").html('');
+                if (d.code == 0) {
+                    that.pageDatas = d.result;
+                    for (var i in that.pageDatas.list) {
+                        $("#tbody").append(that.generateTr(that.pageDatas.list[i], ((pageNum-1)*pageSize+parseInt(i)+1).toString()));
+                    }
+
+                    if (true == isRenderPage) {
+                        that.renderPage();
+                    }
+                }
+            });
+
+        }
+
+        /* 渲染分页 */
+        renderPage = function () {
+            var that = this;
+            // 分页
+            //执行一个laypage实例
+            var pageInfo = that.pageDatas.pageInfo;
+            that.laypage.render({
+                elem: that.pageSelectorId //注意，这里的 test1 是 ID，不用加 # 号
+                ,curr: pageInfo.pageNum
+                ,count: pageInfo.total //数据总数，从服务端得到
+                ,limit: pageInfo.pageSize // 每页显示的条数
+                ,limits: that.limits
+                ,layout: ['prev', 'page', 'next', 'count', 'limit']
+                ,jump: function(obj, first){
+                    //首次不执行
+                    if(!first) {
+                        that.getPageDatas(obj.curr, obj.limit);
+                    }
+                }
+            });
+        }
+    }
+
+    $(function () {
+        var page = new Page('/index/index/index', 'page', function(row, index) {
+            return '<tr>' +
+                '<td>'+ index +'</td>' +
+                '<td>'+ row.name +'</td>' +
+                '<td>'+ row.introduce +'</td>' +
+                '</tr>';
+        });
+
+    });
+</script>
+</body>
+</html>
