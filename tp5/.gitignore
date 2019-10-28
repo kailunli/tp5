@@ -1,6 +1,7 @@
 /.idea
 /.vscode
 /vendor
+database.php
 *.log
 .env
 .DS_Store
